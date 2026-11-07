@@ -21,7 +21,7 @@ Imię i nazwisko & Alina Skyba \\
 Numer albumu & 181628 \\
 Kierunek/specjalność & Informatyka/AI \\
 Tytuł projektu & Uczenie agenta walki w pojedynku \\
-Link do repozytorium & \url{https://github.com/...} \\
+Link do repozytorium & \url{https://github.com/akmqu/rl-duel-agent} \\
 Data oddania & 07.11.2026 \\
 \bottomrule
 \end{tabular}
@@ -31,9 +31,9 @@ Data oddania & 07.11.2026 \\
 
 \subsection{Opis problemu}
 
-Projekt dotyczy prostej gry 2D (widok z~boku), w~której dwóch samurajów walczy ze sobą na jednej linii. Wystarczy jedno trafienie mieczem, żeby pokonać przeciwnika, więc wynik zależy od tego, czy zawodnik podejmie dobrą decyzję we właściwym momencie. Grę zaimplementuję samodzielnie w~Pythonie.
+Projekt dotyczy prostej gry 2D (widok z~boku), w~której dwóch wojowników walczy ze sobą na jednej linii. Wystarczy jedno trafienie mieczem, żeby pokonać przeciwnika, więc wynik zależy od tego, czy zawodnik podejmie dobrą decyzję we właściwym momencie. Grę zaimplementuję samodzielnie w~Pythonie.
 
-Agent steruje jednym samurajem, a~jego przeciwnikiem jest bot działający według prostego skryptu. W~każdej chwili agent może się ruszyć do przodu lub do tyłu, uderzyć, zablokować cios, zrobić unik albo nic nie robić. Cios ma trzy części: przygotowanie, samo uderzenie i~odnowę. Podczas odnowy zawodnik nie może się bronić, dlatego chybiony cios można wykorzystać do kontrataku.
+Agent steruje jednym wojownikiem, a~jego przeciwnikiem jest bot działający według prostego skryptu. W~każdej chwili agent może się ruszyć do przodu lub do tyłu, uderzyć, zablokować cios, zrobić unik albo nic nie robić. Cios ma trzy części: przygotowanie, samo uderzenie i~odnowę. Podczas odnowy zawodnik nie może się bronić, dlatego chybiony cios można wykorzystać do kontrataku.
 
 \subsection{Cel agenta}
 
@@ -61,7 +61,7 @@ Za skuteczne działanie agenta uznam sytuację, w~której wygrywa on częściej 
 
 \subsection{Agent i środowisko}
 
-Agentem jest lewy samuraj. Środowiskiem jest arena (linia o~określonej długości), prawy samuraj sterowany skryptem oraz zasady walki. Czas płynie w~krokach.
+Agentem jest lewy wojownik. Środowiskiem jest arena (linia o~określonej długości), prawy wojownik sterowany skryptem oraz zasady walki. Czas płynie w~krokach.
 
 W~jednym kroku agent wybiera akcję, przeciwnik wybiera swoją, a~następnie środowisko sprawdza, czy ktoś kogoś trafił, i~zwraca agentowi nowy stan, nagrodę oraz informację, czy pojedynek się skończył.
 
@@ -78,7 +78,7 @@ Agent widzi trzy rzeczy: odległość od przeciwnika, to, co sam aktualnie robi,
 \toprule
 Składowa obserwacji & Znaczenie \\
 \midrule
-Odległość & ile pól dzieli samurajów \\
+Odległość & ile pól dzieli wojowników \\
 Faza własna & co agent robi w~tej chwili (np.\ stoi, przygotowuje cios, blokuje) \\
 Faza przeciwnika & co w~tej chwili robi przeciwnik (np.\ stoi, przygotowuje cios, jest w~odnowie) \\
 \bottomrule
@@ -116,7 +116,7 @@ Nową akcję można zacząć dopiero wtedy, gdy poprzednia się skończy. Jeśli
     \item $-0{,}001$ za każdy krok.
 \end{itemize}
 
-Wygrana jest jedynym celem, dlatego dostaje największą nagrodę, a~porażka równie dużą karę. Mała kara za krok sprawia, że agent nie wydłuża pojedynku bez końca. Remis (koniec czasu) jest więc gorszy od wygranej, ale lepszy od porażki. Agent może się nauczyć unikać walki, żeby skończyć remisem zamiast ryzykować porażkę. Sprawdzę to w~eksperymentach. Planuję też porównać kilka wersji nagród.
+Wygrana jest jedynym celem, dlatego dostaje największą nagrodę, a~porażka równie dużą karę. Mała kara za krok sprawia, że agent nie wydłuża pojedynku bez końca. Remis (koniec czasu) jest więc gorszy od wygranej, ale lepszy od porażki. Agent może się nauczyć unikać walki, żeby skończyć remisem zamiast ryzykować porażkę. Sprawdzę to w~eksperymentach. Planuję też porównać kilka wersji nagród. Zasady gry (np. nie można wyjść poza arenę) są ograniczeniami twardymi, a~miękkim ograniczeniem jest kara za krok.
 
 \subsection{Warunki zakończenia epizodu}
 

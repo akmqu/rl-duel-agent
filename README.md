@@ -1,5 +1,7 @@
-# rl-duel-agent
-# Pojedynek agentów: agent RL w walce typu one-hit kill
+# Uczenie agenta walki w pojedynku
 
 ## Opis projektu
-Prosta gra 2D (widok z boku) w języku Python, w której dwóch agentów walczy na jednej linii w formule *one-hit kill* (jedno trafienie kończy walkę). Celem projektu jest wytrenowanie agenta RL (np. Q-learning), który nauczy się kontrolować dystans, reagować na ataki i karać chybienia przeciwnika sterowanego skryptem.
+Prosta gra 2D w Pythonie (widok z boku), w której dwóch wojowników walczy na jednej linii na zasadzie *one-hit kill* (jedno trafienie kończy pojedynek). 
+
+Agent RL steruje jednym z wojowników i walczy z botem działającym według skryptu. Celem agenta jest nauczenie się kontroli dystansu i wykorzystywania błędów przeciwnika do kontrataku.
+
