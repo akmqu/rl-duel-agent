@@ -1,0 +1,264 @@
+\documentclass[12pt]{article}
+\input{article_style.tex}
+
+\title{Raport projektowy\\Uczenie się ze wzmocnieniem}
+\author{Alina Skyba}
+\date{2026/2027}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\newpage
+
+\section{Informacje podstawowe}
+
+\begin{center}
+\begin{tabular}{p{0.34\textwidth}p{0.56\textwidth}}
+\toprule
+Element & Informacja \\
+\midrule
+Imię i nazwisko & Alina Skyba \\
+Numer albumu & 181628 \\
+Kierunek/specjalność & Informatyka/AI \\
+Tytuł projektu & Uczenie agenta walki w pojedynku \\
+Link do repozytorium & \url{https://github.com/...} \\
+Data oddania & 07.11.2026 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Temat i cel projektu}
+
+\subsection{Opis problemu}
+
+Projekt dotyczy prostej gry 2D (widok z~boku), w~której dwóch samurajów walczy ze sobą na jednej linii. Wystarczy jedno trafienie mieczem, żeby pokonać przeciwnika, więc wynik zależy od tego, czy zawodnik podejmie dobrą decyzję we właściwym momencie. Grę zaimplementuję samodzielnie w~Pythonie.
+
+Agent steruje jednym samurajem, a~jego przeciwnikiem jest bot działający według prostego skryptu. W~każdej chwili agent może się ruszyć do przodu lub do tyłu, uderzyć, zablokować cios, zrobić unik albo nic nie robić. Cios ma trzy części: przygotowanie, samo uderzenie i~odnowę. Podczas odnowy zawodnik nie może się bronić, dlatego chybiony cios można wykorzystać do kontrataku.
+
+\subsection{Cel agenta}
+
+Celem agenta jest wygrać pojedynek, czyli trafić przeciwnika wcześniej, niż on trafi agenta. Żeby to osiągnąć, agent powinien nauczyć się:
+\begin{itemize}
+    \item utrzymywać odpowiednią odległość od przeciwnika, tak aby być poza jego zasięgiem, ale blisko,
+    \item wykorzystywać chybienia przeciwnika i~atakować, gdy ten nie może się bronić,
+    \item reagować blokiem lub unikiem na cios przeciwnika.
+\end{itemize}
+
+Za skuteczne działanie agenta uznam sytuację, w~której wygrywa on częściej niż agent bazowy.
+
+
+\subsection{Uzasadnienie zastosowania uczenia się ze wzmocnieniem}
+
+\begin{itemize}
+    \item W~każdej chwili agent podejmuje decyzję, a~dobra strategia to ciąg takich decyzji (np.\ cofnąć się, poczekać na cios, zrobić unik i~kontratakować), a~nie jedna decyzja.
+    \item Decyzja ma wpływ na to, co może się wydarzyć potem. Po wyprowadzeniu ciosu agent przez kilka taktów nie może się bronić, więc zły moment ataku kończy się porażką.
+    \item Nagrodę dostaje się dopiero na końcu pojedynku, ale dobre decyzje (np.\ trzymanie dystansu) zapadają dużo wcześniej. Agent musi więc uczyć się, które z~nich naprawdę się opłacają.
+    \item Część przeciwników działa w~sposób losowy, a~agent nie wie, co przeciwnik zrobi w~następnym kroku.
+    \item To nie jest zwykła klasyfikacja ani jednorazowa optymalizacja. Agent wykonuje wiele ruchów jeden po drugim, a~każdy z~nich wpływa na dalszy przebieg walki.
+\end{itemize}
+
+\section{Formalizacja problemu RL/MDP}
+
+\subsection{Agent i środowisko}
+
+Agentem jest lewy samuraj. Środowiskiem jest arena (linia o~określonej długości), prawy samuraj sterowany skryptem oraz zasady walki. Czas płynie w~krokach.
+
+W~jednym kroku agent wybiera akcję, przeciwnik wybiera swoją, a~następnie środowisko sprawdza, czy ktoś kogoś trafił, i~zwraca agentowi nowy stan, nagrodę oraz informację, czy pojedynek się skończył.
+
+Przeciwnicy sterowani skryptem będą trzech rodzajów: agresywny (podchodzi i~atakuje), obronny (blokuje ciosy i~kontratakuje) oraz losowy (w~bliskiej odległości atakuje lub się cofa, z~określonym prawdopodobieństwem). Agenta uczącego się chcę trenować na dwóch z~nich, a~sprawdzić na trzecim, którego wcześniej nie widział.
+
+Agenci bazowi, z~którymi porównam agenta uczącego się: agent losowy, agent, który zawsze atakuje, oraz prosta heurystyka (utrzymuje dystans, blokuje cios, a~po chybieniu przeciwnika atakuje).
+
+\subsection{Stan lub obserwacja}
+
+Agent widzi trzy rzeczy: odległość od przeciwnika, to, co sam aktualnie robi, oraz to, co robi przeciwnik (np.\ przygotowuje cios, jest w~odnowie). Nie widzi natomiast, co przeciwnik zamierza zrobić, więc nie zna pełnego stanu środowiska.
+
+\begin{center}
+\begin{tabular}{p{0.34\textwidth}p{0.56\textwidth}}
+\toprule
+Składowa obserwacji & Znaczenie \\
+\midrule
+Odległość & ile pól dzieli samurajów \\
+Faza własna & co agent robi w~tej chwili (np.\ stoi, przygotowuje cios, blokuje) \\
+Faza przeciwnika & co w~tej chwili robi przeciwnik (np.\ stoi, przygotowuje cios, jest w~odnowie) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Liczba wszystkich możliwych stanów wynosi zaledwie kilka tysięcy, dlatego na początek planuję użyć klasycznego algorytmu Q-learning.
+
+\subsection{Akcje}
+
+Agent ma do wyboru sześć akcji.
+
+\begin{center}
+\begin{tabular}{p{0.30\textwidth}p{0.60\textwidth}}
+\toprule
+Akcja & Opis \\
+\midrule
+Nic & agent czeka \\
+Krok do przodu & zbliża się do przeciwnika o~jedno pole \\
+Krok do tyłu & oddala się od przeciwnika o~jedno pole \\
+Cios & atak mieczem (przygotowanie, uderzenie, odnowa) \\
+Blok & obrona przed ciosem; zablokowany cios zatrzymuje atakującego \\
+Unik & krótka nietykalność i~cofnięcie się o~jedno pole \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Nową akcję można zacząć dopiero wtedy, gdy poprzednia się skończy. Jeśli agent wybierze akcję w~złym momencie, nic się nie dzieje. Nie można też wyjść poza arenę ani przejść przez przeciwnika.
+
+\subsection{Funkcja nagrody}
+
+\begin{itemize}
+    \item $+1$ za trafienie przeciwnika (wygrana),
+    \item $-1$ za bycie trafionym (porażka),
+    \item $-0{,}001$ za każdy krok.
+\end{itemize}
+
+Wygrana jest jedynym celem, dlatego dostaje największą nagrodę, a~porażka równie dużą karę. Mała kara za krok sprawia, że agent nie wydłuża pojedynku bez końca. Remis (koniec czasu) jest więc gorszy od wygranej, ale lepszy od porażki. Agent może się nauczyć unikać walki, żeby skończyć remisem zamiast ryzykować porażkę. Sprawdzę to w~eksperymentach. Planuję też porównać kilka wersji nagród.
+
+\subsection{Warunki zakończenia epizodu}
+
+Epizod kończy się, gdy agent trafi przeciwnika (wygrana), gdy przeciwnik trafi agenta (porażka) albo gdy minie limit 200 kroków (remis).
+
+\subsection{Założenia i ograniczenia środowiska}
+
+\begin{itemize}
+    \item Arena to prosta linia, a~gra toczy się krok po kroku.
+    \item Uczy się tylko jeden agent, a~przeciwnicy działają według skryptów.
+    \item Losowość jest w~zachowaniu części przeciwników oraz w~tym, że na początku stoją w~różnej odległości od siebie.
+    \item Czas trwania poszczególnych części ciosu i~zasięg miecza są na razie wstępne. Mogę je zmienić po pierwszych testach.
+\end{itemize}
+
+% \section{Implementacja}
+
+% \subsection{Struktura repozytorium}
+
+% Należy krótko opisać strukturę repozytorium i najważniejsze pliki projektu.
+
+% \begin{verbatim}
+% repozytorium/
+% |-- src/
+% |-- experiments/
+% |-- report/
+% |-- results/
+% `-- README.md
+% \end{verbatim}
+
+% \subsection{Środowisko}
+
+% Należy opisać sposób implementacji środowiska, w szczególności funkcje inicjalizacji epizodu oraz wykonania kroku środowiska.
+
+% \subsection{Agent bazowy}
+
+% Należy opisać agenta losowego, heurystycznego albo inny baseline wykorzystany do porównania z agentem uczącym się.
+
+% \subsection{Agent uczący się}
+
+% Należy opisać zastosowany algorytm RL lub DRL, jego parametry oraz sposób implementacji. W przypadku Q-tab należy opisać reprezentację tablicy wartości. W przypadku DRL należy opisać wejścia modelu, wyjścia modelu, architekturę oraz sposób uczenia.
+
+% \section{Plan eksperymentów}
+
+% Należy opisać eksperymenty zaplanowane w celu oceny działania agenta.
+
+% \begin{center}
+% \begin{tabular}{p{0.24\textwidth}p{0.30\textwidth}p{0.30\textwidth}}
+% \toprule
+% Eksperyment & Co jest zmieniane? & Co jest mierzone? \\
+% \midrule
+% E1 & Do uzupełnienia & Do uzupełnienia \\
+% E2 & Do uzupełnienia & Do uzupełnienia \\
+% E3 & Do uzupełnienia & Do uzupełnienia \\
+% \bottomrule
+% \end{tabular}
+% \end{center}
+
+% W tej sekcji należy wskazać:
+% \begin{itemize}
+%     \item liczbę epizodów uczenia,
+%     \item liczbę powtórzeń eksperymentu albo uzasadnienie braku powtórzeń,
+%     \item parametry uczenia,
+%     \item metryki oceny,
+%     \item warianty środowiska, map lub funkcji nagrody,
+%     \item sposób porównania z agentem bazowym.
+% \end{itemize}
+
+% \section{Wyniki}
+
+% W tej sekcji należy przedstawić wyniki eksperymentów. Wyniki powinny być pokazane w postaci tabel, wykresów lub czytelnych zestawień.
+
+% \begin{center}
+% \begin{tabular}{p{0.28\textwidth}p{0.20\textwidth}p{0.20\textwidth}p{0.20\textwidth}}
+% \toprule
+% Wariant & Średni zwrot & Skuteczność & Długość epizodu \\
+% \midrule
+% Agent bazowy & Do uzupełnienia & Do uzupełnienia & Do uzupełnienia \\
+% Agent RL/DRL & Do uzupełnienia & Do uzupełnienia & Do uzupełnienia \\
+% \bottomrule
+% \end{tabular}
+% \end{center}
+
+% \begin{figure}[h]
+%     \centering
+%     \fbox{\parbox{0.82\textwidth}{\centering Miejsce na wykres procesu uczenia}}
+%     \caption{Przykładowy wykres procesu uczenia agenta.}
+% \end{figure}
+
+% \section{Analiza i wnioski}
+
+% Należy zinterpretować wyniki. W tej części należy odpowiedzieć m.in. na pytania:
+% \begin{itemize}
+%     \item Czy agent uczący się działa lepiej niż agent bazowy?
+%     \item Jak zmieniało się zachowanie agenta w trakcie uczenia?
+%     \item Które elementy środowiska były najtrudniejsze?
+%     \item Czy funkcja nagrody prowadziła do oczekiwanego zachowania?
+%     \item Czy wystąpiły przypadki niepożądanego zachowania agenta?
+%     \item Jakie są najważniejsze ograniczenia rozwiązania?
+% \end{itemize}
+
+% \section{Instrukcja uruchomienia}
+
+% Należy opisać sposób uruchomienia projektu od czystego repozytorium. Przykładowo:
+
+% \begin{verbatim}
+% git clone https://github.com/...
+% cd nazwa-repozytorium
+% python -m venv .venv
+% .venv\Scripts\activate
+% pip install -r requirements.txt
+% python src/main.py
+% \end{verbatim}
+
+% Należy również wskazać, jak odtworzyć eksperymenty oraz gdzie zapisywane są wyniki.
+
+% \section{Wsparcie AI}
+
+% W tej sekcji należy obowiązkowo opisać wykorzystanie narzędzi sztucznej inteligencji. Jeżeli student nie korzystał z takich narzędzi, należy wpisać jednoznaczną informację, że nie korzystano ze wsparcia AI.
+
+% \begin{center}
+% \begin{tabular}{p{0.13\textwidth}p{0.19\textwidth}p{0.21\textwidth}p{0.27\textwidth}}
+% \toprule
+% Data & Narzędzie/model & Cel użycia & Transkrypt / link / zakres \\
+% \midrule
+% Do uzupełnienia & Do uzupełnienia & Do uzupełnienia & Do uzupełnienia \\
+% Do uzupełnienia & Do uzupełnienia & Do uzupełnienia & Do uzupełnienia \\
+% \bottomrule
+% \end{tabular}
+% \end{center}
+
+% Należy zapisać transkrypty rozmów z modelami AI wraz z datą oraz nazwą modelu. Jeżeli rozmowa odbywała się poza narzędziami programistycznymi, należy dodatkowo udostępnić całą rozmowę poprzez link, o ile użyte narzędzie umożliwia takie udostępnienie.
+
+% Student powinien także wyjaśnić, które elementy wygenerowane lub zasugerowane przez AI zostały samodzielnie sprawdzone, zmodyfikowane albo odrzucone.
+
+% \section{Literatura}
+
+% W tej sekcji należy wskazać wykorzystane źródła: książki, artykuły naukowe, dokumentację bibliotek, materiały wykładowe oraz inne źródła użyte podczas pracy nad projektem.
+
+% \begin{thebibliography}{9}
+% \bibitem{sutton_barto}
+% R. S. Sutton, A. G. Barto, \textit{Reinforcement Learning: An Introduction}, 2nd ed., MIT Press, 2018.
+% \end{thebibliography}
+
+
+\end{document}
